@@ -1,1 +1,1 @@
-Download Citrix XenApp 6 and 6,5 PowerShell SDKs and install in computer/server that execute the scripts
+Download Citrix XenApp 7 PowerShell SDKs and install in computer/server that execute the scripts
