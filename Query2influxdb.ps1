@@ -21,7 +21,7 @@ write-host '    888   888  888 888    888  888  888   X88K   888    888 888    8
 write-host '    888   888  888 888    888  Y88b 888 .d8""8b. 888  .d88P 888   d88P'
 write-host '  8888888 888  888 888    888   "Y88888 888  888 8888888P"  8888888P" '
 write-host ''
-import-module $PSscriptroot\InfluxDB-Powershell-Module
+import-module "$PSscriptroot\InfluxDB-Powershell-Module"
 $raya= "-" * 40
 do
 {
