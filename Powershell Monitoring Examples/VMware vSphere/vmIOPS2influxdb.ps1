@@ -6,7 +6,7 @@ if (!(Get-PSSnapin VMware.VimAutomation.Core -ErrorAction SilentlyContinue)) {
     Add-PSSnapin VMware.VimAutomation.Core
 }
 #cargo las funciones de influxdb
-import-module $scriptPath\influxDBfunctions.psm1 -ErrorAction Stop
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 $myVC = "servervc1.sistemaswin.com"
 $hostpwd='put here your root password encoded with key below'
 $hostcred = New-Object System.Management.Automation.PSCredential ("root", (ConvertTo-SecureString $hostpwd -key (1..16)))
