@@ -2,7 +2,7 @@
 #Mikel V
 $scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 #load influxdb functions
-import-module $scriptPath\influxDBfunctions.psm1
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 #load powercli snappin
 if (!(Get-PSSnapin VMware.VimAutomation.Core -ErrorAction SilentlyContinue)) {
     Add-PSSnapin VMware.VimAutomation.Core
