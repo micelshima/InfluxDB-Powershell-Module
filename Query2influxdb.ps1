@@ -21,9 +21,7 @@ write-host '    888   888  888 888    888  888  888   X88K   888    888 888    8
 write-host '    888   888  888 888    888  Y88b 888 .d8""8b. 888  .d88P 888   d88P'
 write-host '  8888888 888  888 888    888   "Y88888 888  888 8888888P"  8888888P" '
 write-host ''
-$scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
-#cargo las funciones de influxdb
-import-module $scriptPath\influxDBfunctions.psm1
+import-module $PSscriptroot\InfluxDB-Powershell-Module
 $raya= "-" * 40
 do
 {
