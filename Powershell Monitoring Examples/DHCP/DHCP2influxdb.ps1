@@ -1,5 +1,5 @@
 #cargo las funciones de influxdb
-import-module $PSscriptroot\..\..\InfluxDB-Powershell-Module
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 $content=import-csv "$Psscriptroot\DHCP2influxdb.csv" -delimiter "`t"
 foreach ($item in $content){
 $skip=$false
