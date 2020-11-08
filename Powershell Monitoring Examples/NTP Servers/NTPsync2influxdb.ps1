@@ -1,11 +1,10 @@
 #Monitor server time with w32tm command
 #Mikel V
-$scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 #load influxdb functions
-import-module $scriptPath\influxDBfunctions.psm1
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 
 #servidores NTP a los que consultar la hora
-$ntpservers="servercendc02.sistemaswin.com,serverpnadc03.sistemaswin.com,serverpnadc04.sistemaswin.com,serverbpnadc05.beta.sistemaswin.com"
+$ntpservers="servercendc02.sistemaswin.com,serverpnadc03.sistemaswin.com,serverpnadc04.sistemaswin.com,serverbpnadc05.sistemaswin.com"
 
 $result=w32tm /monitor /computers:$ntpservers
 #parseo el resultado
