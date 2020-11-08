@@ -2,7 +2,7 @@
 #Mikel V
 $scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 #load influxdb functions
-import-module $scriptPath\influxDBfunctions.psm1 -ErrorAction Stop
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 #load file with drives to care about in the failover cluster
 $cluster=import-csv $scriptPath\clusterdrives.csv -delimiter "`t"
 $objFSO = New-Object -com  Scripting.FileSystemObject
