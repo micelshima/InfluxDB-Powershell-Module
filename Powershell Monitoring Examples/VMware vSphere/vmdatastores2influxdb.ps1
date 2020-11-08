@@ -6,7 +6,7 @@ if (!(Get-PSSnapin VMware.VimAutomation.Core -ErrorAction SilentlyContinue)) {
     Add-PSSnapin VMware.VimAutomation.Core
 }
 #load influxdb functions
-import-module $scriptPath\influxDBfunctions.psm1 -ErrorAction Stop
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 $myVC = "servervc1.sistemaswin.com"
 Set-PowerCLIConfiguration -DefaultVIServerMode Single -InvalidCertificateAction Ignore -Confirm:$false
 $VCServer = Connect-VIserver -server $myVC 
