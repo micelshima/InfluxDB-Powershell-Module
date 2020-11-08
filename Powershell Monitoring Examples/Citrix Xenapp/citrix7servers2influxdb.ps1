@@ -42,7 +42,7 @@ $scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 #cargo el snapin de Citrix 7
 asnp citrix*
 #cargo las funciones de influxdb
-import-module $scriptPath\influxDBfunctions.psm1
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 
 #CITRIX LICENSES
 $citrixlicenses=get-brokersite|select -expand licensedsessionsactive
