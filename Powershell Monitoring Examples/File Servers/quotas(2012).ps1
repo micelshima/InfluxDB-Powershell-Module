@@ -4,7 +4,7 @@ $scriptPath = split-path -parent $MyInvocation.MyCommand.Definition
 #load FSRM module (2012 R2)
 import-module FileServerResourceManager -ErrorAction Stop
 #load influxdb functions
-import-module $scriptPath\influxDBfunctions.psm1 -ErrorAction Stop
+import-module "$PSscriptroot\..\..\InfluxDB-Powershell-Module"
 #load file with drives to care about in the failover cluster
 $info=import-csv "$scriptPath\clusterdrives.csv" -delimiter "`t"
 $hoy=get-date -uformat "%Y/%m/%d"
