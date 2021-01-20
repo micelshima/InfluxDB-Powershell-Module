@@ -32,13 +32,10 @@ function write-influxDB() {
 			Mandatory = $true)]
 		[string]$database,
 
-		[parameter(Position = 1,
-			Mandatory = $true)]
+		[parameter(Position = 1,Mandatory = $true,ValueFromPipeline)]
 		[string]$lineprotocol,
 
-		[parameter(Position = 2,
-			ValueFromPipeline = $true,
-			ValueFromPipelineByPropertyName = $true)]
+		[parameter(Position = 2)]
 		[string]$server = "serverinfluxdb01.sistemaswin.com"
 	)
 
@@ -47,6 +44,23 @@ function write-influxDB() {
 	#write-host $url -fore cyan
 	if ($PSVersionTable.PSVersion.Major -lt 3) { Invoke-HttpMethod -Uri $url -Body $lineprotocol -method "Post" }
 	else { Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post }
+}
+Function write-InfluxLogging(){
+	param(
+		[int]$errorcode,
+		[int]$duration,
+		[Parameter(ValueFromPipeline)]
+		[string]$msg
+	)
+	$arrayfieldset=@()
+	if ($errorcode){$arrayfieldset+='errorcode={0}i' -f $errorcode}
+	if ($duration){$arrayfieldset+='duration={0}i' -f $duration}
+	if ($msg){$arrayfieldset+='msg="{0}"' -f $msg}
+	$fieldset=$arrayfieldset -join ","
+	$measurement='powershell'
+	$tagset= 'servername={0},username={1},script={2}' -f $env:computername.toupper(),$env:username,((split-path $MyInvocation.scriptname -leaf) -replace " ","\ ")
+	$body="$measurement,$tagset $fieldset"
+	write-influxdb "logs" $body
 }
 function Invoke-HttpMethod {
 	[CmdletBinding()]
@@ -163,13 +177,10 @@ function read-influxDB() {
 			Mandatory = $true)]
 		[string]$database,
 
-		[parameter(Position = 1,
-			Mandatory = $true)]
+		[parameter(Position = 1,Mandatory = $true,ValueFromPipeline)]
 		[string]$query,
 
-		[parameter(Position = 2,
-			ValueFromPipeline = $true,
-			ValueFromPipelineByPropertyName = $true)]
+		[parameter(Position = 2)]
 		[string]$server = "serverinfluxdb01.sistemaswin.com"
 	)
 
