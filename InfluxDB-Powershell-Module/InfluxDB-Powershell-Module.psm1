@@ -53,6 +53,7 @@ Function write-InfluxLogging(){
 		[string]$msg
 	)
 	$arrayfieldset=@()
+	$arrayfieldset+='value=1i'
 	if ($errorcode){$arrayfieldset+='errorcode={0}i' -f $errorcode}
 	if ($duration){$arrayfieldset+='duration={0}i' -f $duration}
 	if ($msg){$arrayfieldset+='msg="{0}"' -f $msg}
