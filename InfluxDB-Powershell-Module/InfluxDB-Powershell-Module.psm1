@@ -40,10 +40,8 @@ function write-influxDB() {
 	)
 
 
-	$url = "http://{0}:8086/write?db={1}" -f $server, $database
-	#write-host $url -fore cyan
-	if ($PSVersionTable.PSVersion.Major -lt 3) { Invoke-HttpMethod -Uri $url -Body $lineprotocol -method "Post" }
-	else { Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post }
+	$url = "http://{0}:8086/write?db={1}" -f $server, $database	
+	Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post
 }
 Function write-InfluxLogging(){
 	param(
@@ -63,115 +61,7 @@ Function write-InfluxLogging(){
 	$body="$measurement,$tagset $fieldset"
 	write-influxdb "logs" $body
 }
-function Invoke-HttpMethod {
-	[CmdletBinding()]
-	Param(
-		[string] $URI,
-		[string] $Body,
-		[string] $Method
 
-	)
-	[Int] $MethodRetryWaitSecond = 6
-	[Int] $MaxMethodRetry = 2
-
-	#check flags
-	[Bool] $MethodResult = $True
-
-	For ($WriteRetryCount = 0; $WriteRetryCount -lt $MaxMethodRetry; $WriteRetryCount++) {
-
-		$WebRequest = [System.Net.WebRequest]::Create($URI)
-		$WebRequest.ContentType = "application/x-www-form-urlencoded"
-		$BodyStr = [System.Text.Encoding]::UTF8.GetBytes($Body)
-		$Webrequest.ContentLength = $BodyStr.Length
-		$WebRequest.ServicePoint.Expect100Continue = $false
-		$webRequest.Method = $Method
-
-
-		# [System.Net.WebRequest]::GetRequestStream()
-		Try {
-			$RequestStream = $WebRequest.GetRequestStream()
-
-			# [System.IO.Stream]::Write()
-			Try {
-				$RequestStream.Write($BodyStr, 0, $BodyStr.length)
-			}
-			Catch [Exception] {
-				Write-Error $Error[0].Exception.ErrorRecord
-				$MethodResult = $False
-			}
-			$MethodResult = $True
-
-		}
-		Catch [Exception] {
-			Write-Error $Error[0].Exception.ErrorRecord
-			$MethodResult = $False
-		}
-		Finally {
-			$RequestStream.Close()
-		}
-
-		# [System.Net.WebRequest]::GetResponse()
-		If ($MethodResult) {
-			Try {
-				[System.Net.WebResponse] $resp = $WebRequest.GetResponse();
-				$MethodResult = $True
-			}
-			Catch [Exception] {
-				Write-Error $Error[0].Exception.ErrorRecord
-				$MethodResult = $False
-			}
-		}
-
-		# [System.Net.WebResponse]::GetResponseStream()
-		If ($MethodResult) {
-			Try {
-				$rs = $resp.GetResponseStream();
-				$MethodResult = $True
-			}
-			Catch [Exception] {
-				Write-Error $Error[0].Exception.ErrorRecord
-				$MethodResult = $False
-			}
-		}
-
-		# [System.IO.StreamReader]::ReadToEnd()
-		If ($MethodResult) {
-			Try {
-				[System.IO.StreamReader] $sr = New-Object System.IO.StreamReader -argumentList $rs;
-				[string] $results = $sr.ReadToEnd();
-				$MethodResult = $True
-			}
-			Catch [Exception] {
-				Write-Error $Error[0].Exception.ErrorRecord
-				$MethodResult = $False
-			}
-			Finally {
-				$sr.Close();
-			}
-		}
-
-		If ($MethodResult) {
-			#finally success
-			return $results;
-		}
-		Else {
-			#eventually fails
-			If ($WriteRetryCount -lt $MaxMethodRetry) {
-				#preparation for retry
-				Write-Verbose "retries the writing"
-				Remove-Variable RequestStream
-				Remove-Variable BodyStr
-				Remove-Variable WebRequest
-				#[System.GC]::Collect([System.GC]::MaxGeneration)
-				Start-Sleep -Seconds $MethodRetryWaitSecond
-			}
-			Else {
-				#reached the maximum number of retries
-				Write-Verbose "It has reached the maximum number of retries. Skips"
-			}
-		}
-	} #For .. (WriteRetry) .. Loop
-}
 function read-influxDB() {
 	param(
 		[parameter(Position = 0,
