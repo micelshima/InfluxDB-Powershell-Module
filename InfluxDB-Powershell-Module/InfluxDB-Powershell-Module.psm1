@@ -43,6 +43,44 @@ function write-influxDB() {
 	$url = "http://{0}:8086/write?db={1}" -f $server, $database	
 	Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post
 }
+Function Write-SecuredInfluxDB{
+	param(
+		[parameter(Position = 0,
+			Mandatory = $true)]
+		[string]$database,
+		[parameter(Position = 1,Mandatory = $true,ValueFromPipeline)]
+		[string]$lineprotocol,
+		[parameter(Position = 2)]
+		[string]$server = "serverinfluxdb01.sistemaswin.com",
+		[string]$username,
+		[string]$password,
+		[PScredential]$credential
+	)
+	$url = "https://{0}:8086/write?db={1}" -f $server, $database
+	if (-not $credential){
+	$pass = ConvertTo-SecureString -String $password -asPlainText -Force
+	$credential = New-Object System.Management.Automation.PSCredential -ArgumentList $username,$pass
+	}
+	if($PSVersionTable.PSVersion.Major -lt 7){
+		# Código para ignorar el certificado de https de influx
+		$code= @"
+			using System.Net;
+			using System.Security.Cryptography.X509Certificates;
+			public class TrustAllCertsPolicy : ICertificatePolicy {
+				public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {
+					return true;
+				}
+			}
+"@
+		Add-Type -TypeDefinition $code -Language CSharp
+		[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+		# Fin codigo de ignorado certificado https
+		Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post -Credential $credential
+	}
+	else{
+		Invoke-webrequest -UseBasicParsing -Uri $url -Body $lineprotocol -method Post -Credential $credential -SkipCertificateCheck
+	}
+}
 Function write-InfluxLogging(){
 	param(
 		[int]$errorcode,
