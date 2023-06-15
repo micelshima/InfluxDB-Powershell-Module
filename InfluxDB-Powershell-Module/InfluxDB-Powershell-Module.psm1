@@ -100,7 +100,8 @@ Function write-InfluxLogging(){
 	write-influxdb "logs" $body
 }
 
-function read-influxDB() {
+function read-influxDB {
+
 	param(
 		[parameter(Position = 0,
 			Mandatory = $true)]
@@ -110,22 +111,73 @@ function read-influxDB() {
 		[string]$query,
 
 		[parameter(Position = 2)]
-		[string]$server = "serverinfluxdb01.sistemaswin.com"
+		[string]$server = "serverinfluxdb01.sistemaswin.com",
+		[PSCredential]$credential
 	)
 
-
-	$url = "http://{0}:8086/query?db={1}" -f $server, $database
-	$body = "q=$query"
-	$result = Invoke-webrequest -UseBasicParsing -Uri $url -Body $body -method Post
-	$content = convertfrom-json -input $result.content
-	$columns = $content.results.series.columns
-	$objects = new-object System.Collections.Arraylist
-	foreach ($singlepoint in $content.results.series.values) {
-		$object = New-Object PSObject
-		for ($j = 0; $j -lt $columns.length; $j++) {
-			$object | Add-Member -MemberType NoteProperty -Name $columns[$j] -Value $singlepoint[$j]
-		}
-		[void]$objects.add($object)
+	$url = "http://{0}:8086/query?db={1}&q={2}" -f  $server,$database,$query
+	if($credential){
+		$Results = Invoke-RestMethod -Uri $Url -credential $credential -AllowUnencryptedAuthentication
 	}
-	return $objects
+	else{
+		$Results = Invoke-RestMethod -Uri $Url
+	}
+
+	if($Results.results.error){write-error $Results.results.error}
+	else{
+		$measurement=$Results.results.series.name
+		$columns=$Results.results.series.columns
+		$data = [System.Collections.ArrayList]@()
+		if($Results.results.series.tags){
+			$tags=$Results.results.series[0].tags
+			$t1=$tags[0]
+			$keys=get-variable -name t1|select -expand value|gm|?{$_.MemberType -eq "NoteProperty"}|select -expand name
+
+		}
+
+		foreach($s in $Results.results.series){
+
+			foreach($v in $s.values){
+			$item=@{}
+				for ($i=0;$i -lt $columns.count;$i++){
+					if($columns[$i] -eq "time"){$item.add($columns[$i],[datetime]$v[$i]) }
+					else{$item.add($columns[$i],$v[$i])}
+				}
+				if($tags){
+				if($keys.count -eq 1){$item.add($keys,$s.tags.$keys)}
+				else{
+					for ($j=0;$j -lt $keys.count;$j++){
+						$item.add($keys[$j],$s.tags.$($keys[$j]))
+					}
+				}
+
+				}
+				$null = $data.add([pscustomobject]$item)
+			}
+
+		}
+		return $data
+	}
+}
+Function convertto-lineprotocol{
+	param(
+		[string]$measurement,
+		[pscustomobject]$data
+	)
+	$d1=$data[0]
+	$keys=get-variable -name d1|select -expand value|gm|?{$_.MemberType -eq "NoteProperty"}|select -expand name
+	$series=[System.Collections.ArrayList]@()
+	$measurement|write-host -fore cyan
+	foreach($key in $keys){'{0} -> {1}'-f $key,$d1.$key.gettype().name|out-host}
+	foreach($item in $data){
+		$tags=$values=@()
+		foreach($key in $keys){
+			if($d1.$key.gettype().name -eq "String"){$tags+='{0}={1}' -f $key,$item.$key -replace ' ','\ '}
+			elseif($d1.$key.gettype().name -in "Decimal","Int32","Int64","Double"){$values+='{0}={1}' -f $key,$item.$key -replace ',','.'}
+			elseif($d1.$key.gettype().name -eq "DateTime"){$time=convertto-unixtime $item.$key}
+		}
+		$line='{0},{1} {2} {3}' -f $measurement,($tags -join ","),($values -join ","),$time
+		$null=$series.add($line)
+	}
+	return $series
 }
