@@ -1,30 +1,58 @@
 function convertto-unixtime {
 	param(
+		[parameter(Position = 0,
+			Mandatory = $false)]
 		[datetime]$DateTime,
-		[switch]$seconds
+		[parameter(Position = 1,
+			Mandatory = $false)]
+		[string]$precision='ns'
 	)
 	[datetime]$EpochOrigin = "1970/01/01 00:00:00"
-	if ($seconds) {
-		if ($DateTime -eq $null)
-		{ $unixtime = [int64](New-TimeSpan -Start (Get-Date $EpochOrigin) -End ([DateTime]::Now).ToUniversalTime()).Totalseconds }
-		else { $unixtime = [int64](New-TimeSpan -Start (Get-Date $EpochOrigin) -End (Get-Date $DateTime).ToUniversalTime()).Totalseconds }
-	}
-	else {
-		if ($DateTime -eq $null)
-		{ $miliseconds = [int64](New-TimeSpan -Start (Get-Date $EpochOrigin) -End ([DateTime]::Now).ToUniversalTime()).TotalMilliseconds }
-		else { $miliseconds = [int64](New-TimeSpan -Start (Get-Date $EpochOrigin) -End (Get-Date $DateTime).ToUniversalTime()).TotalMilliseconds }
-		#convert milliseconds to nanoseconds
-		$unixtime = $miliseconds * 1000000
+	switch($precision){
+		's'{
+			if ($DateTime -eq $null){ $unixtime = [int64](New-TimeSpan -Start $EpochOrigin -End ([DateTime]::Now).ToUniversalTime()).Totalseconds }
+			else { $unixtime = [int64](New-TimeSpan -Start $EpochOrigin -End $DateTime.ToUniversalTime()).Totalseconds }
+		}
+		'ms'{
+				if ($DateTime -eq $null){ $unixtime = [int64](New-TimeSpan -Start $EpochOrigin -End ([DateTime]::Now).ToUniversalTime()).TotalMilliseconds }
+				else { $unixtime = [int64](New-TimeSpan -Start $EpochOrigin -End $DateTime.ToUniversalTime()).TotalMilliseconds }
+
+		}
+		'ns'{
+			if ($DateTime -eq $null){ $milliseconds = [int64](New-TimeSpan -Start $EpochOrigin -End ([DateTime]::Now).ToUniversalTime()).TotalMilliseconds }
+			else { $milliseconds = [int64](New-TimeSpan -Start $EpochOrigin -End $DateTime.ToUniversalTime()).TotalMilliseconds }
+			#convert milliseconds to nanoseconds
+			$unixtime = $milliseconds * 1000000
+		}
 	}
 	return $unixtime
 }
-Function convertto-datetime($unixtime) {
-	#convert nanoseconds to milliseconds
-	$miliseconds = $unixtime / 1000000
-	[datetime]$EpochOrigin = "1970/01/01 00:00:00"
-	$datetime = (get-date $EpochOrigin).AddMilliseconds($miliseconds)
+Function convertto-datetime {
+	param(
+		[parameter(Position = 0,
+			Mandatory = $true)]
+		[int64]$unixtime,
+		[parameter(Position = 1,
+			Mandatory = $false)]
+		[string]$precision='ns'
+	)
+	switch($precision){
+		'ns'{
+			#convert nanoseconds to milliseconds
+			$milliseconds = $unixtime / 1000000
+		}
+		'ms'{
+			$milliseconds = $unixtime
+		}
+		's'{
+			$milliseconds = $unixtime * 1000
+		}
+	}
 
-	return $datetime.tostring("dd/MM/yyyy HH:mm:ss")
+	[datetime]$EpochOrigin = "1970/01/01 00:00:00"
+	$datetime = $EpochOrigin.AddMilliseconds($milliseconds)
+
+	return $datetime
 }
 function write-influxDB() {
 	param(
@@ -126,11 +154,10 @@ function read-influxDB {
 	if($Results.results.error){write-error $Results.results.error}
 	else{
 		$measurement=$Results.results.series.name
-		$columns=$Results.results.series.columns
+		$columns=$Results.results.series.columns|select -unique
 		$data = [System.Collections.ArrayList]@()
 		if($Results.results.series.tags){
-			$tags=$Results.results.series[0].tags
-			$t1=$tags[0]
+			$tags=$Results.results.series[0].tags|select -unique	
 			$keys=get-variable -name t1|select -expand value|gm|?{$_.MemberType -eq "NoteProperty"}|select -expand name
 
 		}
