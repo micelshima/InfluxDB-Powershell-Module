@@ -143,13 +143,40 @@ function read-influxDB {
 		[PSCredential]$credential
 	)
 
-	$url = "http://{0}:8086/query?db={1}&q={2}" -f  $server,$database,$query
-	if($credential){
-		$Results = Invoke-RestMethod -Uri $Url -credential $credential -AllowUnencryptedAuthentication
+	if ($server -match ":\d"){$url = "{0}/query?db={1}&q={2}" -f  $server,$database,$query}
+	else{$url = "{0}:8086/query?db={1}&q={2}" -f  $server,$database,$query}
+	$params = @{}
+	if($PSVersionTable.PSVersion.Major -lt 7){
+		if($server -match "^https"){
+			#[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+			$code= @"
+			using System.Net;
+			using System.Security.Cryptography.X509Certificates;
+			public class TrustAllCertsPolicy : ICertificatePolicy {
+				public bool CheckValidationResult(ServicePoint srvPoint, X509Certificate certificate, WebRequest request, int certificateProblem) {
+					return true;
+				}
+			}
+"@
+		Add-Type -TypeDefinition $code -Language CSharp
+		[System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+		}
+		if($credential){
+			$params.add('credential',$credential)
+		}
 	}
 	else{
-		$Results = Invoke-RestMethod -Uri $Url
+		if($server -match "^https"){
+			$params.add('SkipCertificateCheck',$true)
+		}
+		if($credential){
+			$params.add('credential',$credential)
+			$params.add('AllowUnencryptedAuthentication',$true)
+		}
+
 	}
+	$Results = Invoke-RestMethod -Uri $Url @params
+
 
 	if($Results.results.error){write-error $Results.results.error}
 	else{
